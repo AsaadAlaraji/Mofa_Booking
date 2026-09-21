@@ -16,8 +16,7 @@
 <!-- ===== أيقونة الشاشة الرئيسية (Android / PWA) ===== -->
 <link rel="manifest" href="manifest.json">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+
 <style>
   :root{
     --navy:#12324C; --navy-dark:#0B2436; --gold:#AD8A4D; --gold-light:#E7DAC0;
@@ -26,7 +25,7 @@
     --success:#2E7D5C; --success-bg:#E7F5EF;
     --warning:#B4790A; --warning-bg:#FBF1DF;
     --danger:#B23B3B; --danger-bg:#FBEAEA;
-    --radius:10px; --font-body:'Tajawal', sans-serif; --font-display:'Amiri', serif;
+    --radius:10px; --font-body:Arial, Tahoma, sans-serif; --font-display:Georgia, 'Times New Roman', serif;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -58,7 +57,7 @@
   .field{margin-bottom:1.15rem;}
   .field label{display:block;font-size:.9rem;font-weight:500;margin-bottom:.4rem;color:var(--text);}
   .field .hint{font-size:.78rem;color:var(--muted);margin-top:.3rem;}
-  input[type=text],input[type=date],input[type=time],input[type=number],input[type=password],select{
+  input[type=text],input[type=date],input[type=time],input[type=number],input[type=tel],input[type=password],select{
     width:100%;padding:.62rem .7rem;border:1px solid var(--border);border-radius:8px;
     font-family:var(--font-body);font-size:16px;color:var(--text);background:var(--surface-alt);}
   input[type=date],input[type=time]{padding:.7rem .7rem;min-height:46px;}
@@ -136,6 +135,14 @@
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;
     padding:.6rem 1.1rem;border-radius:8px;font-size:.85rem;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;}
   .toast.show{opacity:1;}
+  #adminTabButton{display:none;}
+  body.admin-mode #adminTabButton{display:block;}
+  .admin-delete-btn{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger);border-radius:7px;padding:.45rem .7rem;font-family:var(--font-body);cursor:pointer;font-size:.82rem;}
+  .admin-actions{display:flex;gap:8px;align-items:center;justify-content:flex-start;flex-wrap:wrap;margin-top:.8rem;}
+  .schedule-signature{margin-top:50px;min-height:110px;break-inside:avoid;page-break-inside:avoid;text-align:left;direction:rtl;}
+  .schedule-signature .signature-inner{width:230px;margin-left:0;margin-right:auto;text-align:center;}
+  .schedule-signature .line{height:38px;border-bottom:1px solid #444;margin-bottom:6px;}
+  .schedule-signature .date-line{margin-top:18px;font-size:.82rem;}
   details.collapsible summary{cursor:pointer;color:var(--navy);font-weight:500;font-size:.88rem;margin-bottom:.6rem;}
   footer.disclosure{max-width:760px;margin:1rem auto 0;padding:0 1.25rem 2rem;font-size:.76rem;color:var(--muted);text-align:center;}
 
@@ -175,7 +182,7 @@
     <div class="header-text">
       <h1>وزارة الخارجية العراقية</h1>
       <p class="dept">دائرة المراسم – قسم التشريفات</p>
-      <p class="supervisor">بإشراف: أسعد أديب الأعرجي</p>
+      <p class="supervisor">نسخة تجريبية</p>
     </div>
   </div>
 </header>
@@ -183,7 +190,7 @@
 <nav class="tabs no-print">
   <button class="tab-btn active" data-tab="new">طلب موعد جديد</button>
   <button class="tab-btn" data-tab="track">متابعة حالة الطلب</button>
-  <button class="tab-btn" data-tab="admin">لوحة الإدارة</button>
+  <button class="tab-btn" id="adminTabButton" data-tab="admin" type="button">لوحة الإدارة</button>
 </nav>
 
 <main>
@@ -192,6 +199,17 @@
     <div class="card">
       <form id="requestForm" novalidate>
         <div id="formAlert"></div>
+
+        <div class="field">
+          <label for="categoryInput">الفئة حسب الأولوية الرسمية</label>
+          <select id="categoryInput" required>
+            <option value="">اختر الفئة</option>
+            <option value="الفئة الأولى: الوزير">الفئة الأولى: الوزير</option>
+            <option value="الفئة الثانية: الوكلاء">الفئة الثانية: الوكلاء</option>
+            <option value="الفئة الثالثة: رؤساء الدوائر ومعاونوهم">الفئة الثالثة: رؤساء الدوائر ومعاونوهم</option>
+            <option value="الفئة الرابعة: رؤساء الأقسام وباقي موظفي الوزارة">الفئة الرابعة: رؤساء الأقسام وباقي موظفي الوزارة</option>
+          </select>
+        </div>
 
         <div class="field">
           <label for="departmentInput">اسم الدائرة</label>
@@ -215,9 +233,12 @@
           <label>الضيوف (الصفة/الجهة + الاسم)</label>
           <div id="guestsContainer"></div>
           <datalist id="guestRoleList"></datalist>
-          <datalist id="guestList"></datalist>
           <button type="button" class="add-guest-btn" id="addGuestBtn">+ إضافة ضيف آخر</button>
-          <p class="hint">مثال: الصفة/الجهة «السفير الهندي» + الاسم «نتالي نومي» ← تظهر في الجدول: السفير الهندي نتالي نومي</p>
+          <p class="hint">مثال: الصفة/الجهة "سفير جمهورية النمسا" + الاسم "اكسيل فاخ"</p>
+          <div class="field" style="margin-top:.9rem;margin-bottom:0;">
+            <label for="attendeeCount">عدد الحضور</label>
+            <input type="number" id="attendeeCount" min="1" step="1" inputmode="numeric" placeholder="أدخل عدد الحضور">
+          </div>
         </div>
 
         <div class="row2">
@@ -245,6 +266,17 @@
         </div>
 
         <div id="conflictWarning"></div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="applicantNameInput">اسم مقدم الطلب</label>
+            <input type="text" id="applicantNameInput" placeholder="اكتب اسم مقدم الطلب" autocomplete="off" required>
+          </div>
+          <div class="field">
+            <label for="phoneInput">رقم الهاتف</label>
+            <input type="tel" id="phoneInput" placeholder="أدخل رقم الهاتف" inputmode="numeric" autocomplete="off" required>
+          </div>
+        </div>
 
         <div class="field checklist-field">
           <label class="checkbox-line">
@@ -350,13 +382,14 @@
 </main>
 
 <footer class="disclosure no-print">
-  خدمة داخلية مخصصة لموظفي وزارة الخارجية العراقية لحجز مواعيد اللقاءات مع السفارات العربية والأجنبية والوزارات الأخرى.
+  موقع حجز المواعيد الرسمية لموظفي وزارة الخارجية العراقية<br><span>إعداد وتصميم أسعد أديب الأعرجي</span>
 </footer>
 
 <div id="printArea"></div>
 <div class="toast" id="toast"></div>
 
 <script>
+
 /* ============================================================
    جسر الاتصال بالخادم (Google Apps Script)
    ============================================================ */
@@ -364,18 +397,35 @@
 // رابط الخادم (Google Apps Script Web App) — ضعه هنا بعد النشر
 // مثال: https://script.google.com/macros/s/AKfycb.../exec
 // ============================================================
-const API_URL = "https://script.google.com/macros/s/AKfycbwtnPe7NEVnuQpjXSR2_7Kz8ISErIvgl5fTwtYNegPIq0n8riUEZiNdjhlR9UGJjPbszQ/exec";
+const API_URL = "ضع_رابط_Apps_Script_هنا";
 
-function callServer(fnName, ...args){
-  return fetch(API_URL, {
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+async function callServerRaw(fnName, args){
+  const res = await fetch(API_URL, {
     method: 'POST',
     body: JSON.stringify({ action: fnName, params: args })
-  })
-    .then(res => res.json())
-    .then(data => {
-      if(!data.ok) throw new Error(data.error || 'حدث خطأ في الخادم.');
-      return data.result;
-    });
+  });
+  const data = await res.json();
+  if(!data.ok) throw new Error(data.error || 'حدث خطأ في الخادم.');
+  return data.result;
+}
+
+// يعيد المحاولة تلقائياً عند انقطاع مؤقت في الاتصال (شائع مع أول استخدام لخادم كان
+// خاملاً)، بدل إظهار خطأ للمستخدم من أول محاولة. آمن للاستدعاءات القرائية دائماً؛
+// وللإرسال (submitRequest) بفضل معرّف العميل الذي يمنع أي تكرار عند إعادة المحاولة.
+async function callServer(fnName, ...args){
+  const attempts = 3;
+  let lastErr;
+  for(let i = 0; i < attempts; i++){
+    try{
+      return await callServerRaw(fnName, args);
+    }catch(err){
+      lastErr = err;
+      if(i < attempts - 1) await sleep(600 * (i + 1));
+    }
+  }
+  throw lastErr;
 }
 
 const WEEKDAY_NAMES = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
@@ -411,7 +461,8 @@ async function populateAllDatalists(){
   document.getElementById('departmentList').innerHTML = opts.department.map(v=>`<option value="${escapeHtml(v)}">`).join('');
   document.getElementById('hostTitleList').innerHTML = opts.hostTitle.map(v=>`<option value="${escapeHtml(v)}">`).join('');
   document.getElementById('hostList').innerHTML = opts.host.map(v=>`<option value="${escapeHtml(v)}">`).join('');
-  document.getElementById('guestList').innerHTML = opts.guest.map(v=>`<option value="${escapeHtml(v)}">`).join('');
+  const guestListEl = document.getElementById('guestList');
+  if(guestListEl) guestListEl.innerHTML = '';
   document.getElementById('guestRoleList').innerHTML = (opts.guestRole||[]).map(v=>`<option value="${escapeHtml(v)}">`).join('');
   const roomListEl = document.getElementById('roomList');
   if(roomListEl) roomListEl.innerHTML = (opts.room||[]).map(v=>`<option value="${escapeHtml(v)}">`).join('');
@@ -431,9 +482,11 @@ function addGuestRow(role, name){
   roleInput.placeholder = 'الصفة/الجهة (اختياري)'; roleInput.autocomplete = 'off'; roleInput.value = role || '';
 
   const nameInput = document.createElement('input');
-  nameInput.type = 'text'; nameInput.className = 'guest-name'; nameInput.setAttribute('list','guestList');
+  nameInput.type = 'text'; nameInput.className = 'guest-name';
   nameInput.placeholder = 'اسم الضيف'; nameInput.autocomplete = 'off'; nameInput.value = name || '';
 
+  roleInput.addEventListener('input', ()=>{ roleInput.value = roleInput.value.replace(/[^A-Za-z؀-ۿݐ-ݿ .'\-]/g,''); });
+  nameInput.addEventListener('input', ()=>{ nameInput.value = nameInput.value.replace(/[^A-Za-z؀-ۿݐ-ݿ .'\-]/g,''); });
   row.appendChild(roleInput);
   row.appendChild(nameInput);
   if(container.children.length >= 1){
@@ -509,6 +562,7 @@ function buildCardHTML(req, full){
     <div class="seal"><span class="k">رقم الطلب</span><span class="v">${formatCodeDisplay(req.code)}</span></div>
     <div class="status-center"><span class="badge ${badgeClass}">${badgeLabel}</span></div>
     <dl class="detail-list">
+      <div class="row"><dt>الفئة</dt><dd>${escapeHtml(req.category || '')}</dd></div>
       <div class="row"><dt>الدائرة</dt><dd>${escapeHtml(req.department)}</dd></div>
       ${peopleRows}
       <div class="row"><dt>التاريخ</dt><dd>${formatDateArabic(req.date)}</dd></div>
@@ -549,10 +603,10 @@ function printRequest(req, full){
    جدول المواعيد اليومي الرسمي (تصدير PDF من لوحة الإدارة)
    ============================================================ */
 const SECTION_DEFS = [
-  { num: '١', title: 'مواعيد معالي الوزير: -', hasHost: false },
-  { num: '٢', title: 'مواعيد السادة وكلاء الوزارة ومستشاري السيد الوزير: -', hasHost: true },
-  { num: '٣', title: 'مواعيد السادة رؤساء دوائر الوزارة ومعاونيهم: -', hasHost: true },
-  { num: '٤', title: 'مواعيد السادة مدراء الاقسام وموظفي الوزارة -:', hasHost: true }
+  { num: '١', title: 'مواعيد الفئة الأولى: الوزير', hasHost: true },
+  { num: '٢', title: 'مواعيد الفئة الثانية: الوكلاء', hasHost: true },
+  { num: '٣', title: 'مواعيد الفئة الثالثة: رؤساء الدوائر ومعاونوهم', hasHost: true },
+  { num: '٤', title: 'مواعيد الفئة الرابعة: رؤساء الأقسام وباقي موظفي الوزارة', hasHost: true }
 ];
 
 function toEasternDigits(s){
@@ -606,10 +660,20 @@ function buildScheduleBodyHTML(dateStr, sections, screen){
   const weekday = WEEKDAY_NAMES[d.getDay()];
   const titleClass = screen ? 'schedule-title-screen' : 'schedule-title';
   const tables = SECTION_DEFS.map((def, idx) => buildScheduleTableHTML(def, sections[idx+1] || [], screen)).join('');
+  const today = formatDateArabic(todayISO());
+  const signature = `
+    <div class="schedule-signature">
+      <div class="signature-inner">
+        <div class="line"></div>
+        <div>توقيع معاون رئيس الدائرة</div>
+        <div class="date-line">التاريخ: ${escapeHtml(today)}</div>
+      </div>
+    </div>`;
   return `
     <div dir="rtl">
       <p class="${titleClass}">جدول مواعيد يوم ${weekday} ${formatDateForTitle(dateStr)}</p>
       ${tables}
+      ${signature}
     </div>
   `;
 }
@@ -687,13 +751,36 @@ function todayISO(){
   const dd = String(d.getDate()).padStart(2,'0');
   return `${yyyy}-${mm}-${dd}`;
 }
+function makeRequestId(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'r-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+}
+let currentRequestId = makeRequestId();
 function setFormDefaults(){
   document.getElementById('meetingDate').value = todayISO();
   document.getElementById('durationValue').value = 1;
   document.getElementById('durationUnit').value = 'hours';
+  currentRequestId = makeRequestId();
 }
 
+// إحماء الخادم فور فتح الصفحة: يقلّل احتمال بطء أو فشل أول محاولة إرسال فعلية،
+// لأن أول استدعاء لخادم Apps Script خامل يكون عادة الأبطأ بفارق واضح.
+callServer('ping').catch(()=>{});
+
 addGuestRow();
+function attachStrictInputGuards(){
+  const textIds = ['departmentInput','hostTitleInput','hostInput','applicantNameInput'];
+  textIds.forEach(id=>{
+    const el=document.getElementById(id);
+    el.addEventListener('input', ()=>{ el.value = el.value.replace(/[^A-Za-z\u0600-\u06FF\u0750-\u077F .'\-]/g,''); });
+  });
+  const phone=document.getElementById('phoneInput');
+  phone.addEventListener('input', ()=>{ phone.value = phone.value.replace(/\D/g,''); });
+  const count=document.getElementById('attendeeCount');
+  count.addEventListener('input', ()=>{ count.value = count.value.replace(/\D/g,''); });
+}
+attachStrictInputGuards();
+
 populateAllDatalists();
 setFormDefaults();
 
@@ -721,12 +808,34 @@ function scheduleConflictCheck(){
   document.getElementById(id).addEventListener('input', scheduleConflictCheck);
 });
 
+function validTextInput(value){
+  return /^[A-Za-z\u0600-\u06FF\u0750-\u077F]+(?:[ .'\-][A-Za-z\u0600-\u06FF\u0750-\u077F]+)*$/.test(String(value || '').trim());
+}
+function validDigits(value){ return /^\d+$/.test(String(value || '').trim()); }
+function validateFormClient(payload){
+  const errors = [];
+  if(!payload.category) errors.push('يرجى اختيار فئة الأولوية الرسمية.');
+  if(!validTextInput(payload.department)) errors.push('اسم الدائرة: أدخل أحرفاً عربية أو إنجليزية ومسافات فقط.');
+  if(!validTextInput(payload.hostTitle)) errors.push('صفة المستقبِل: أدخل أحرفاً عربية أو إنجليزية ومسافات فقط.');
+  if(!validTextInput(payload.host)) errors.push('اسم المضيف: أدخل أحرفاً عربية أو إنجليزية ومسافات فقط.');
+  if(!payload.guests.length) errors.push('يرجى إدخال اسم ضيف واحد على الأقل.');
+  payload.guests.forEach(g=>{
+    if(!validTextInput(g.name)) errors.push('اسم الضيف يجب أن يحتوي على أحرف عربية أو إنجليزية ومسافات فقط.');
+    if(g.role && !validTextInput(g.role)) errors.push('صفة/جهة الضيف يجب أن تحتوي على أحرف عربية أو إنجليزية ومسافات فقط.');
+  });
+  if(!validDigits(payload.attendeeCount) || Number(payload.attendeeCount)<1) errors.push('عدد الحضور: أدخل رقماً صحيحاً أكبر من صفر.');
+  if(!validTextInput(payload.applicantName)) errors.push('اسم مقدم الطلب: أدخل أحرفاً عربية أو إنجليزية ومسافات فقط.');
+  if(!validDigits(payload.phone)) errors.push('رقم الهاتف: أدخل أرقاماً فقط.');
+  return errors;
+}
+
 document.getElementById('requestForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
   const alertBox = document.getElementById('formAlert');
   alertBox.innerHTML = '';
 
   const payload = {
+    category: document.getElementById('categoryInput').value,
     department: document.getElementById('departmentInput').value.trim(),
     hostTitle: document.getElementById('hostTitleInput').value.trim(),
     host: document.getElementById('hostInput').value.trim(),
@@ -734,26 +843,40 @@ document.getElementById('requestForm').addEventListener('submit', async (e)=>{
       role: row.querySelector('.guest-role').value.trim(),
       name: row.querySelector('.guest-name').value.trim()
     })).filter(g => g.name),
+    attendeeCount: document.getElementById('attendeeCount').value.trim(),
+    applicantName: document.getElementById('applicantNameInput').value.trim(),
+    phone: document.getElementById('phoneInput').value.trim(),
     date: document.getElementById('meetingDate').value,
     time: document.getElementById('meetingTime').value,
     durationValue: Number(document.getElementById('durationValue').value),
     durationUnit: document.getElementById('durationUnit').value,
     securityInfoSent: document.getElementById('securityInfoSent').checked,
     officialLetterSent: document.getElementById('officialLetterSent').checked,
-    departmentPledge: document.getElementById('departmentPledge').checked
+    departmentPledge: document.getElementById('departmentPledge').checked,
+    clientRequestId: currentRequestId
   };
+
+  const clientErrors = validateFormClient(payload);
+  if(clientErrors.length){
+    alertBox.innerHTML = `<div class="alert error"><strong>يرجى تصحيح ما يلي:</strong><ul>${clientErrors.map(er=>`<li>${escapeHtml(er)}</li>`).join('')}</ul></div>`;
+    alertBox.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
 
   const submitBtn = document.getElementById('submitBtn');
   submitBtn.disabled = true; submitBtn.textContent = 'جارٍ الإرسال...';
+  const slowNoticeTimer = setTimeout(()=>{ submitBtn.textContent = 'جارٍ الإرسال... قد يستغرق الأمر بضع ثوانٍ'; }, 2500);
 
   let result;
   try{
     result = await callServer('submitRequest', payload);
   }catch(err){
-    alertBox.innerHTML = `<div class="alert error">تعذّر الاتصال بالخادم. يرجى المحاولة مرة أخرى.</div>`;
+    clearTimeout(slowNoticeTimer);
+    alertBox.innerHTML = `<div class="alert error">تعذّر الاتصال بالخادم بعد عدة محاولات. تحقّق من الاتصال بالإنترنت ثم اضغط "إرسال الطلب" مجدداً — لن يتكرر طلبكم حتى لو أُرسل أكثر من مرة.</div>`;
     submitBtn.disabled = false; submitBtn.textContent = 'إرسال الطلب';
     return;
   }
+  clearTimeout(slowNoticeTimer);
 
   if(!result.ok){
     alertBox.innerHTML = `<div class="alert error"><strong>يرجى تصحيح ما يلي:</strong><ul>${result.errors.map(er=>`<li>${escapeHtml(er)}</li>`).join('')}</ul></div>`;
@@ -869,10 +992,25 @@ document.getElementById('searchByNameForm').addEventListener('submit', async (e)
    ============================================================ */
 let adminPass = null;
 
+function setAdminModeFromHash(){
+  const isAdminRoute = window.location.hash === '#admin';
+  document.body.classList.toggle('admin-mode', isAdminRoute);
+  if(isAdminRoute && !document.getElementById('tab-admin').classList.contains('active')){
+    document.querySelector('[data-tab="admin"]').click();
+  }
+  if(!isAdminRoute && document.getElementById('tab-admin').classList.contains('active')){
+    document.querySelector('[data-tab="new"]').click();
+  }
+}
+window.addEventListener('hashchange', setAdminModeFromHash);
+setAdminModeFromHash();
+
 document.getElementById('adminLoginBtn').addEventListener('click', async ()=>{
   const val = document.getElementById('adminPassword').value;
   const alertBox = document.getElementById('adminLoginAlert');
-  const ok = await callServer('adminLogin', val);
+  let ok = false;
+  try { ok = await callServer('adminLogin', val); }
+  catch(err){ alertBox.innerHTML = `<div class="alert error">تعذّر الاتصال بالخادم.</div>`; return; }
   if(ok){
     adminPass = val;
     document.getElementById('adminGate').style.display = 'none';
@@ -888,8 +1026,18 @@ document.getElementById('adminLogoutBtn').addEventListener('click', ()=>{
   document.getElementById('adminPassword').value = '';
   document.getElementById('adminDashboard').style.display = 'none';
   document.getElementById('adminGate').style.display = 'block';
+  if(window.location.hash === '#admin') history.replaceState(null, '', window.location.pathname + window.location.search);
+  setAdminModeFromHash();
 });
 document.getElementById('refreshRequestsBtn').addEventListener('click', loadAdminDashboard);
+
+const FIXED_ROOMS = ['بابل','سومر','الطابق الخامس','الطابق السادس','قاعة المعهد','قاعة الطابق الأرضي','مكتب السفير','مكتب الوكيل','مكتب الوزير'];
+function roomSelectHTML(code, selected){
+  const options = ['<option value="">اختر القاعة</option>'].concat(FIXED_ROOMS.map(r =>
+    `<option value="${escapeHtml(r)}" ${selected === r ? 'selected' : ''}>${escapeHtml(r)}</option>`
+  ));
+  return `<select class="admin-location" data-code="${escapeHtml(code)}">${options.join('')}</select>`;
+}
 
 async function loadAdminDashboard(){
   const listBox = document.getElementById('adminRequestsList');
@@ -925,7 +1073,7 @@ async function loadAdminDashboard(){
           </div>
           <div class="field">
             <label>مكان اللقاء</label>
-            <input type="text" class="admin-location" list="roomList" data-code="${escapeHtml(r.code)}" value="${escapeHtml(r.location||'')}" placeholder="اختر قاعة أو اكتب مكاناً آخر">
+            ${roomSelectHTML(r.code, r.location||'')}
           </div>
           <button type="button" class="primary admin-save-btn" data-code="${escapeHtml(r.code)}">حفظ التحديث</button>
         </div>
@@ -938,10 +1086,31 @@ async function loadAdminDashboard(){
         const status = listBox.querySelector(`.admin-status[data-code="${CSS.escape(code)}"]`).value;
         const location = listBox.querySelector(`.admin-location[data-code="${CSS.escape(code)}"]`).value.trim();
         btn.disabled = true; btn.textContent = 'جارٍ الحفظ...';
-        await callServer('adminUpdateRequest', adminPass, code, status, location);
-        btn.disabled = false; btn.textContent = 'حفظ التحديث';
-        showToast('تم حفظ التحديث');
-        loadAdminDashboard();
+        try{
+          const saved = await callServer('adminUpdateRequest', adminPass, code, status, location);
+          if(!saved.ok) throw new Error(saved.error || 'تعذّر حفظ التحديث.');
+          showToast('تم حفظ التحديث');
+          await loadAdminDashboard();
+        }catch(err){
+          showToast(err.message || 'تعذّر حفظ التحديث');
+          btn.disabled = false; btn.textContent = 'حفظ التحديث';
+        }
+      });
+    });
+    listBox.querySelectorAll('.admin-delete-request').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const code = btn.dataset.code;
+        if(!confirm('سيتم حذف هذا الطلب نهائياً. هل تريد المتابعة؟')) return;
+        btn.disabled = true; btn.textContent = 'جارٍ الحذف...';
+        try{
+          const res = await callServer('adminDeleteRequest', adminPass, code);
+          if(!res.ok) throw new Error(res.error || 'تعذّر حذف الطلب.');
+          showToast('تم حذف الطلب');
+          await loadAdminDashboard();
+        }catch(err){
+          showToast(err.message || 'تعذّر حذف الطلب');
+          btn.disabled = false; btn.textContent = 'حذف الطلب';
+        }
       });
     });
   }
@@ -954,8 +1123,7 @@ async function renderOptionsManager(){
   const groups = [
     {key:'department', label:'أسماء الدوائر', arr:opts.department},
     {key:'hostTitle', label:'صفات المستقبِل', arr:opts.hostTitle},
-    {key:'host', label:'أسماء المضيفين', arr:opts.host},
-    {key:'guest', label:'أسماء الضيوف', arr:opts.guest}
+    {key:'host', label:'أسماء المضيفين', arr:opts.host}
   ];
   let html = '';
   for(const g of groups){
@@ -980,6 +1148,7 @@ document.getElementById('clearAllBtn').addEventListener('click', async ()=>{
   showToast('تم حذف جميع الطلبات');
   loadAdminDashboard();
 });
+
 </script>
 </body>
 </html>
