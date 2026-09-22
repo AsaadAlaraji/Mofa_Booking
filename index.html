@@ -66,7 +66,13 @@
   @media(max-width:560px){.row2{grid-template-columns:1fr;}}
   .duration-row{display:grid;grid-template-columns:1fr 1.2fr;gap:10px;}
 
-  .guest-row{display:flex;gap:8px;margin-bottom:8px;}
+  .suggestion-box{position:relative;z-index:20;display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-top:4px;max-height:180px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,.08);}
+  .suggestion-box.show{display:block;}
+  .suggestion-item{display:block;width:100%;border:0;background:transparent;text-align:right;padding:.55rem .7rem;font-family:var(--font-body);font-size:.88rem;color:var(--text);cursor:pointer;}
+  .suggestion-item:hover,.suggestion-item:focus{background:var(--surface-alt);outline:none;}
+
+  .guest-row{display:flex;gap:8px;margin-bottom:8px;position:relative;flex-wrap:wrap;}
+  .guest-role-suggestions{position:absolute;right:calc(40% + 8px);top:44px;width:40%;margin-top:0;}
   .guest-row input{flex:1;min-width:0;}
   .guest-row input.guest-role{flex:0 0 40%;}
   .icon-btn{flex:0 0 auto;width:40px;background:var(--surface-alt);border:1px solid var(--border);
@@ -204,35 +210,35 @@
           <label for="categoryInput">الفئة حسب الأولوية الرسمية</label>
           <select id="categoryInput" required>
             <option value="">اختر الفئة</option>
-            <option value="الفئة الأولى: الوزير">الفئة الأولى: الوزير</option>
-            <option value="الفئة الثانية: الوكلاء">الفئة الثانية: الوكلاء</option>
-            <option value="الفئة الثالثة: رؤساء الدوائر ومعاونوهم">الفئة الثالثة: رؤساء الدوائر ومعاونوهم</option>
-            <option value="الفئة الرابعة: رؤساء الأقسام وباقي موظفي الوزارة">الفئة الرابعة: رؤساء الأقسام وباقي موظفي الوزارة</option>
+            <option value="الفئة الأولى: الوزير">الوزير</option>
+            <option value="الفئة الثانية: الوكلاء">الوكلاء</option>
+            <option value="الفئة الثالثة: رؤساء الدوائر ومعاونوهم">رؤساء الدوائر ومعاونوهم</option>
+            <option value="الفئة الرابعة: رؤساء الأقسام وباقي موظفي الوزارة">رؤساء الأقسام وباقي موظفي الوزارة</option>
           </select>
         </div>
 
         <div class="field">
           <label for="departmentInput">اسم الدائرة</label>
           <input type="text" id="departmentInput" list="departmentList" placeholder="اكتب اسم الدائرة" autocomplete="off">
-          <datalist id="departmentList"></datalist>
+          <datalist id="departmentList"></datalist><div class="suggestion-box" id="departmentSuggestions"></div>
         </div>
 
         <div class="field">
           <label for="hostTitleInput">صفة المستقبِل</label>
           <input type="text" id="hostTitleInput" list="hostTitleList" placeholder="مثال: وكيل الوزارة للعلاقات الثنائية" autocomplete="off">
-          <datalist id="hostTitleList"></datalist>
+          <datalist id="hostTitleList"></datalist><div class="suggestion-box" id="hostTitleSuggestions"></div>
         </div>
 
         <div class="field">
           <label for="hostInput">اسم المضيف</label>
           <input type="text" id="hostInput" list="hostList" placeholder="اكتب اسم المضيف" autocomplete="off">
-          <datalist id="hostList"></datalist>
+          <datalist id="hostList"></datalist><div class="suggestion-box" id="hostSuggestions"></div>
         </div>
 
         <div class="field">
           <label>الضيوف (الصفة/الجهة + الاسم)</label>
           <div id="guestsContainer"></div>
-          <datalist id="guestRoleList"></datalist>
+          <datalist id="guestRoleList"></datalist><div class="suggestion-box" id="guestRoleSuggestions"></div>
           <button type="button" class="add-guest-btn" id="addGuestBtn">+ إضافة ضيف آخر</button>
           <p class="hint">مثال: الصفة/الجهة "سفير جمهورية النمسا" + الاسم "اكسيل فاخ"</p>
           <div class="field" style="margin-top:.9rem;margin-bottom:0;">
@@ -397,7 +403,7 @@
 // رابط الخادم (Google Apps Script Web App) — ضعه هنا بعد النشر
 // مثال: https://script.google.com/macros/s/AKfycb.../exec
 // ============================================================
-const API_URL = "https://script.google.com/macros/s/AKfycbyBd5HP_gMCEFbYvwlgkcgsZLTRaWtyiHUH3g_MwLlzB1O689q_ok8ZrMyx6SThUBhRXQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxBKyaUOSEcSC8O2cm-Lo6Ys-ZmIO9UdZnmLs5l9XK8GhYUnwNT5pUOqppNCmRru6eOdQ/exec";
 
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
@@ -415,14 +421,14 @@ async function callServerRaw(fnName, args){
 // خاملاً)، بدل إظهار خطأ للمستخدم من أول محاولة. آمن للاستدعاءات القرائية دائماً؛
 // وللإرسال (submitRequest) بفضل معرّف العميل الذي يمنع أي تكرار عند إعادة المحاولة.
 async function callServer(fnName, ...args){
-  const attempts = 3;
+  const attempts = 2;
   let lastErr;
   for(let i = 0; i < attempts; i++){
     try{
       return await callServerRaw(fnName, args);
     }catch(err){
       lastErr = err;
-      if(i < attempts - 1) await sleep(600 * (i + 1));
+      if(i < attempts - 1) await sleep(700);
     }
   }
   throw lastErr;
@@ -458,6 +464,7 @@ function showToast(msg){
    ============================================================ */
 async function populateAllDatalists(){
   const opts = await callServer('getOptions');
+  savedSuggestions = {department: opts.department||[], hostTitle: opts.hostTitle||[], host: opts.host||[], guestRole: opts.guestRole||[]};
   document.getElementById('departmentList').innerHTML = opts.department.map(v=>`<option value="${escapeHtml(v)}">`).join('');
   document.getElementById('hostTitleList').innerHTML = opts.hostTitle.map(v=>`<option value="${escapeHtml(v)}">`).join('');
   document.getElementById('hostList').innerHTML = opts.host.map(v=>`<option value="${escapeHtml(v)}">`).join('');
@@ -468,6 +475,30 @@ async function populateAllDatalists(){
   if(roomListEl) roomListEl.innerHTML = (opts.room||[]).map(v=>`<option value="${escapeHtml(v)}">`).join('');
   return opts;
 }
+
+/* اقتراحات الحقول المحفوظة: تظهر كقائمة واضحة على الهاتف والكمبيوتر،
+   مع إبقاء datalist كخيار احتياطي للمتصفح. */
+let savedSuggestions = {department:[], hostTitle:[], host:[], guestRole:[]};
+function setupSuggestionInput(inputId, boxId, key){
+  const input = document.getElementById(inputId);
+  const box = document.getElementById(boxId);
+  if(!input || !box) return;
+  function render(){
+    const q = input.value.trim().toLocaleLowerCase();
+    const items = (savedSuggestions[key] || []).filter(v => !q || String(v).toLocaleLowerCase().includes(q)).slice(0,12);
+    if(!items.length){ box.innerHTML=''; box.classList.remove('show'); return; }
+    box.innerHTML = items.map(v => `<button type="button" class="suggestion-item" data-value="${escapeHtml(v)}">${escapeHtml(v)}</button>`).join('');
+    box.classList.add('show');
+    box.querySelectorAll('.suggestion-item').forEach(btn=>btn.addEventListener('mousedown', e=>e.preventDefault()));
+    box.querySelectorAll('.suggestion-item').forEach(btn=>btn.addEventListener('click', ()=>{ input.value=btn.dataset.value; box.classList.remove('show'); box.innerHTML=''; input.dispatchEvent(new Event('input',{bubbles:true})); }));
+  }
+  input.addEventListener('focus', render);
+  input.addEventListener('input', render);
+  input.addEventListener('blur', ()=>setTimeout(()=>box.classList.remove('show'),150));
+}
+setupSuggestionInput('departmentInput','departmentSuggestions','department');
+setupSuggestionInput('hostTitleInput','hostTitleSuggestions','hostTitle');
+setupSuggestionInput('hostInput','hostSuggestions','host');
 
 /* ============================================================
    حقول الضيوف الديناميكية
@@ -498,6 +529,25 @@ function addGuestRow(role, name){
   container.appendChild(row);
 }
 document.getElementById('addGuestBtn').addEventListener('click', ()=> addGuestRow());
+document.getElementById('guestsContainer').addEventListener('focusin', e=>{
+  if(!e.target.classList.contains('guest-role')) return;
+  let box = e.target.parentElement.querySelector('.guest-role-suggestions');
+  if(!box){
+    box=document.createElement('div'); box.className='suggestion-box guest-role-suggestions';
+    e.target.parentElement.appendChild(box);
+  }
+  const render=()=>{
+    const q=e.target.value.trim().toLocaleLowerCase();
+    const items=(savedSuggestions.guestRole||[]).filter(v=>!q||String(v).toLocaleLowerCase().includes(q)).slice(0,12);
+    box.innerHTML=items.map(v=>`<button type="button" class="suggestion-item" data-value="${escapeHtml(v)}">${escapeHtml(v)}</button>`).join('');
+    box.classList.toggle('show',items.length>0);
+    box.querySelectorAll('button').forEach(b=>b.addEventListener('mousedown',ev=>ev.preventDefault()));
+    box.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{e.target.value=b.dataset.value;box.classList.remove('show');}));
+  };
+  render();
+  e.target.addEventListener('input',render,{once:false});
+});
+
 
 /* ============================================================
    تنسيق العرض
@@ -543,6 +593,9 @@ function buildCardHTML(req, full){
       <div class="row"><dt>صفة المستقبِل</dt><dd>${escapeHtml(req.hostTitle)}</dd></div>
       <div class="row"><dt>المضيف</dt><dd>${escapeHtml(req.host)}</dd></div>
       <div class="row"><dt>الضيوف</dt><dd>${escapeHtml(req.guests.map(displayGuest).join('، '))}</dd></div>
+      <div class="row"><dt>عدد الحضور</dt><dd>${escapeHtml(req.attendeeCount || '')}</dd></div>
+      <div class="row"><dt>اسم مقدم الطلب</dt><dd>${escapeHtml(req.applicantName || '')}</dd></div>
+      <div class="row"><dt>رقم الهاتف</dt><dd dir="ltr" style="text-align:right;">${escapeHtml(req.phone || '')}</dd></div>
     `;
   }
 
@@ -763,10 +816,6 @@ function setFormDefaults(){
   currentRequestId = makeRequestId();
 }
 
-// إحماء الخادم فور فتح الصفحة: يقلّل احتمال بطء أو فشل أول محاولة إرسال فعلية،
-// لأن أول استدعاء لخادم Apps Script خامل يكون عادة الأبطأ بفارق واضح.
-callServer('ping').catch(()=>{});
-
 addGuestRow();
 function attachStrictInputGuards(){
   const textIds = ['departmentInput','hostTitleInput','hostInput','applicantNameInput'];
@@ -885,13 +934,18 @@ document.getElementById('requestForm').addEventListener('submit', async (e)=>{
     return;
   }
 
-  await populateAllDatalists();
+  // تحديث الاقتراحات محلياً بدلاً من إجراء طلب شبكي إضافي بعد كل حجز.
+  if(!savedSuggestions.department.includes(payload.department)) savedSuggestions.department.push(payload.department);
+  if(!savedSuggestions.hostTitle.includes(payload.hostTitle)) savedSuggestions.hostTitle.push(payload.hostTitle);
+  if(!savedSuggestions.host.includes(payload.host)) savedSuggestions.host.push(payload.host);
+  payload.guests.forEach(g=>{ if(g.role && !savedSuggestions.guestRole.includes(g.role)) savedSuggestions.guestRole.push(g.role); });
 
   document.getElementById('requestForm').style.display = 'none';
   const confirmView = document.getElementById('confirmationView');
   confirmView.style.display = 'block';
   confirmView.innerHTML = `
     <div class="alert info">تم إرسال طلبكم بنجاح. يرجى حفظ رقم الطلب أدناه لمتابعة حالته لاحقاً.</div>
+    ${result.sameDayWarning ? '<div class="alert warning">لقد تم تسجيل حجز مسبقاً بهذا الوقت بالفعل، يرجى متابعة حالة الطلب لاحقاً</div>' : ''}
     ${buildCardHTML(result.request, true)}
     <div class="actions-row">
       <button type="button" class="primary" id="printBtn">طباعة / حفظ PDF</button>
@@ -967,10 +1021,10 @@ document.getElementById('searchByNameForm').addEventListener('submit', async (e)
   if(!name || !date){ box.innerHTML = '<div class="alert error">يرجى إدخال اسم الضيف وتاريخ اللقاء.</div>'; return; }
   box.innerHTML = '<div class="empty-state">جارٍ البحث...</div>';
   try{
-    const matches = await callServer('searchByNameDate', name, date); // الخادم لا يُعيد الأسماء أصلاً
+    const matches = await callServer('searchByNameDate', name, date);
 
     if(matches.length === 0){ box.innerHTML = '<div class="empty-state">لم يتم العثور على طلب مطابق. تأكد من الاسم والتاريخ وحاول مجدداً.</div>'; return; }
-    if(matches.length === 1){ renderTrackedRequest(matches[0], false); return; }
+    if(matches.length === 1){ renderTrackedRequest(matches[0], true); return; }
 
     box.innerHTML = matches.map(r => `
       <div class="result-item" data-code="${escapeHtml(r.code)}">
@@ -979,7 +1033,7 @@ document.getElementById('searchByNameForm').addEventListener('submit', async (e)
     box.querySelectorAll('.result-item').forEach(item=>{
       item.addEventListener('click', ()=>{
         const found = matches.find(m => m.code === item.dataset.code);
-        if(found) renderTrackedRequest(found, false);
+        if(found) renderTrackedRequest(found, true);
       });
     });
   }catch(err){
@@ -1076,6 +1130,7 @@ async function loadAdminDashboard(){
             ${roomSelectHTML(r.code, r.location||'')}
           </div>
           <button type="button" class="primary admin-save-btn" data-code="${escapeHtml(r.code)}">حفظ التحديث</button>
+          <div class="admin-actions"><button type="button" class="admin-delete-btn admin-delete-request" data-code="${escapeHtml(r.code)}">🗑 حذف هذا الطلب</button></div>
         </div>
       </details>
     `).join('');
